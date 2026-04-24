@@ -1,7 +1,8 @@
 import copy
-
+from sklearn.model_selection import StratifiedShuffleSplit
 import pandas as pd
 from feature_engine.discretisation import DecisionTreeDiscretiser
+
 
 
 # You are allowed to change anything you see fit here for the purpose of Portfolio 2!
@@ -69,19 +70,20 @@ def handle_missing_data(data: pd.DataFrame) -> pd.DataFrame:
 
 # Preprocesses the cleveland dataset. Function modifies column types, handles missing data, and discretises
 # numerical variables. It also splits the dataset into training and testing parts.
-def preprocess(data: pd.DataFrame, class_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def preprocess(data: pd.DataFrame, class_name: str, n_splits: int = 1) -> tuple[pd.DataFrame, pd.DataFrame]:
     dataset = copy.deepcopy(data)
 
     # We handle missing entries
     dataset = handle_missing_data(dataset)
 
-    # We shuffle the dataset and split it between testing and training data
-    dataset = dataset.sample(frac=1)
-    split = 0.7
-    training_dataset = dataset[0:int(len(dataset) * split)]
-    testing_dataset = dataset[int(len(dataset) * split):]
-    # We discretize the data. Don't be alarmed just because the returned values are numbers.
+    sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=0.7, random_state=0)
+    ssd = sss.split(dataset, dataset[class_name])
+    train_index, test_index = next(ssd)
+    training_dataset = dataset.iloc[train_index]
+    testing_dataset = dataset.iloc[test_index]
+
     vars_to_discretize = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
+    # We discretize the data. Don't be alarmed just because the returned values are numbers.
     training_dataset, testing_dataset = discretize(vars_to_discretize, training_dataset, testing_dataset, class_name)
 
     # We change feature types
