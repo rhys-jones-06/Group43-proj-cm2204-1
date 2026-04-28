@@ -76,7 +76,7 @@ def preprocess(data: pd.DataFrame, class_name: str, n_splits: int = 1) -> tuple[
     # We handle missing entries
     dataset = handle_missing_data(dataset)
 
-    sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=0.7, random_state=0)
+    sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
     ssd = sss.split(dataset, dataset[class_name])
     train_index, test_index = next(ssd)
     training_dataset = dataset.iloc[train_index]
