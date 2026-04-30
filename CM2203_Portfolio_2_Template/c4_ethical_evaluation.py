@@ -119,3 +119,15 @@ class Evaluator:
         )
 
         return mf.by_group
+
+ # flip dataset on sex for counterfactual fairness
+    def flip_dataset(self, testing_data: pd.DataFrame):
+        flipped_data = testing_data.copy()
+        flipped_data['sex'] = flipped_data['sex'].apply(lambda x: 'female' if x == 'male' else 'male')
+        return flipped_data
+    
+    def compute_counterfactual_fairness(self, original_preds : pd.Series, flipped_preds: pd.Series):
+        num_flips = (original_preds != flipped_preds).sum()
+        flip_rate = num_flips / len(original_preds)
+        return flip_rate
+
