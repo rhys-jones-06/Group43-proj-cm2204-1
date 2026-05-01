@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, balanced_accuracy_score
 from fairlearn.metrics import MetricFrame
@@ -50,7 +52,9 @@ class Evaluator:
         return accuracy_score(actual_classes, predicted_classes)
 
     def compute_balanced_accuracy(self, actual_classes: pd.Series, predicted_classes: pd.Series) -> float:
-        return balanced_accuracy_score(actual_classes, predicted_classes)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', UserWarning)
+            return balanced_accuracy_score(actual_classes, predicted_classes)
 
     # This is the evaluate_classification counterpart from Portfolio 1. Class values are no longer given at input,
     # and the confusion matrix function is no longer needed. The function produces the output as a Series

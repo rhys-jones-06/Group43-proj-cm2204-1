@@ -1,8 +1,11 @@
 import copy
-from sklearn.model_selection import StratifiedShuffleSplit
+
 import pandas as pd
 from feature_engine.discretisation import DecisionTreeDiscretiser
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
+from c3_naive_bayes import NaiveBayes
 
 
 # You are allowed to change anything you see fit here for the purpose of Portfolio 2!
@@ -73,20 +76,48 @@ def handle_missing_data(data: pd.DataFrame) -> pd.DataFrame:
 def preprocess(data: pd.DataFrame, class_name: str, n_splits: int = 1) -> tuple[pd.DataFrame, pd.DataFrame]:
     dataset = copy.deepcopy(data)
 
-    # We handle missing entries
-    dataset = handle_missing_data(dataset)
+    # training_dataset, testing_dataset = train_test_split(
+    #     dataset,
+    #     test_size=0.3,
+    #     stratify=dataset[['target', 'sex']],
+    #     random_state=42
+    # )
 
-    sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=0.7, random_state=0)
-    ssd = sss.split(dataset, dataset[class_name])
-    train_index, test_index = next(ssd)
-    training_dataset = dataset.iloc[train_index]
-    testing_dataset = dataset.iloc[test_index]
+    skf = StratifiedKFold(n_splits=10)
+    folds = []
 
-    vars_to_discretize = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
+    #vars_to_discretize = [col for col in ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'] if col in dataset.columns]
+
     # We discretize the data. Don't be alarmed just because the returned values are numbers.
-    training_dataset, testing_dataset = discretize(vars_to_discretize, training_dataset, testing_dataset, class_name)
+    for train_index, test_index in skf.split(dataset, dataset['target']):
+        training_dataset = dataset.iloc[train_index]
+        testing_dataset = dataset.iloc[test_index]
 
-    # We change feature types
-    training_dataset = training_dataset.astype(object)
-    testing_dataset = testing_dataset.astype(object)
-    return training_dataset, testing_dataset
+        #training_dataset, testing_dataset = discretize( train_data, test_data, class_name)
+
+        # We change feature types
+        training_dataset = training_dataset.astype(object)
+        testing_dataset = testing_dataset.astype(object)
+
+        folds.append((training_dataset, testing_dataset))
+
+    return folds
+
+def analyse_feature_importance(nb_classifier: NaiveBayes, features_values, target_values):
+
+    perm_importance = permutation_importance(
+        nb_classifier.inner_nb,
+        features_values,
+        target_values,
+        n_repeats=10,
+    )
+
+    feature_names = nb_classifier.encoder.get_feature_names_out()
+
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': perm_importance.importances_mean,
+        'std': perm_importance.importances_std,
+    }).sort_values(by='importance', ascending=False)
+
+    return importance_df
